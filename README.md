@@ -43,3 +43,10 @@ Ring is a sorted set with fixed capcity
 - Last: get last element
 - Element: get all element
 - Size: get Ring size
+
+## Consistent Hashing
+- NewCHash[Node any](nodes []Node, options ...chashOptionFunc[Node]) (*CHash[Node], error): new consistent hash
+- (ch *CHash[Node]) Hash(data []byte) (node Node, err error): get node by data
+- (ch *CHash[Node]) HashIDer(ider IDer) (node Node, err error): get node by IDer
+- (ch *CHash[Node]) AddNode(node Node) error: add one node
+- (ch *CHash[Node]) RemoveNode(node Node) error: remove one node

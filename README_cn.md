@@ -42,3 +42,10 @@ Ring 是一个有固定容量的排序集合
 - Last: 得到最后一个元素
 - Element: 得到所有的元素
 - Size: 得到环的大小
+
+## 一致性哈希
+- NewCHash[Node any](nodes []Node, options ...chashOptionFunc[Node]) (*CHash[Node], error): 创建一个一致性哈希对象
+- (ch *CHash[Node]) Hash(data []byte) (node Node, err error): 获得一个节点
+- (ch *CHash[Node]) HashIDer(ider IDer) (node Node, err error): 获得一个节点
+- (ch *CHash[Node]) AddNode(node Node) error: 新增一个节点
+- (ch *CHash[Node]) RemoveNode(node Node) error: 删除一个节点
