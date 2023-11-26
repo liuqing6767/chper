@@ -2,7 +2,6 @@ package chper
 
 import (
 	"crypto/rand"
-	"fmt"
 	"hash/crc32"
 	mrand "math/rand"
 	"reflect"
@@ -245,27 +244,60 @@ func TestCHashBlance(t *testing.T) {
 	}
 
 	total := 10000
-	frequencies := map[string]int{}
-	for i := 0; i < total; i++ {
-		bs := make([]byte, mrand.Int31()%1000)
-		_, err = rand.Read(bs)
-		if err != nil {
-			t.Errorf("want nil, got: %v", err)
-			return
+	{
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
 		}
 
-		node, err := ch.Hash(bs)
-		if err != nil {
-			t.Errorf("want nil, got: %v", err)
-			return
+		for name, count := range frequencies {
+			if count < total*30/100 || count > total*36/100 {
+				t.Error(name, count, total)
+			}
 		}
-
-		frequencies[node.Name]++
 	}
 
-	for name, count := range frequencies {
-		if count < total*30/100 || count > total*36/100 {
-			t.Error(name, count, total)
+	{
+		err = ch.AddNode(nodeD)
+		if err != nil {
+			t.Errorf("want nil, got: %v", err)
+		}
+
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
+		}
+
+		for name, count := range frequencies {
+			if count < total*22/100 || count > total*28/100 {
+				t.Error(name, count, total)
+			}
 		}
 	}
 }
@@ -312,42 +344,4 @@ func TestCHashfind(t *testing.T) {
 			t.Errorf("index: %d, want: %d, got: %d", one.index, one.wantNode, got)
 		}
 	}
-}
-
-func ExampleCHash() {
-
-	ch, err := NewCHash[*Node]([]*Node{{Name: "A"}, {Name: "B"}, {Name: "C"}},
-		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
-		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
-		CHashOptionVirtualNodeFactor[*Node](5),
-	)
-	fmt.Println(err)
-
-	node, err := ch.Hash([]byte("1"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("1"))
-	fmt.Println(node.Name, err)
-
-	node, err = ch.Hash([]byte("2"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("2"))
-	fmt.Println(node.Name, err)
-
-	node, err = ch.Hash([]byte("3"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("3"))
-	fmt.Println(node.Name, err)
-
-	node, err = ch.Hash([]byte("4"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("5"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("6"))
-
-	node, err = ch.Hash([]byte("7"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("8"))
-	fmt.Println(node.Name, err)
-	node, err = ch.Hash([]byte("9"))
-
 }
