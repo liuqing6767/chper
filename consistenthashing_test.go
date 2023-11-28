@@ -232,7 +232,7 @@ func TestCHash(t *testing.T) {
 	}
 }
 
-func TestCHashBlance(t *testing.T) {
+func TestCHashBalance(t *testing.T) {
 	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
 		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
 		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
@@ -342,6 +342,116 @@ func TestCHashfind(t *testing.T) {
 	} {
 		if got := ch.find(one.index); got != one.wantNode {
 			t.Errorf("index: %d, want: %d, got: %d", one.index, one.wantNode, got)
+		}
+	}
+}
+
+func TestCHashWeightBalance(t *testing.T) {
+	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
+		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
+		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
+		CHashOptionWeightSpecify[*Node](func(node *Node) int {
+			if node.Name == "A" || node.Name == "D" {
+				return 98
+			}
+
+			return 1
+		}),
+		// CHashOptionVirtualNodeFactor[*Node](500),
+	)
+	if err != nil {
+		t.Errorf("want nil, got: %v", err)
+		return
+	}
+
+	total := 10000
+	{
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
+		}
+		{
+			name := "A"
+			count := frequencies[name]
+			if count < 9700 {
+				t.Error(name, count, total)
+			}
+		}
+		{
+			name := "B"
+			count := frequencies[name]
+			if count > 200 {
+				t.Error(name, count, total)
+			}
+		}
+		{
+			name := "C"
+			count := frequencies[name]
+			if count > 200 {
+				t.Error(name, count, total)
+			}
+		}
+	}
+
+	ch.AddNode(nodeD)
+	{
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
+		}
+		{
+			name := "A"
+			count := frequencies[name]
+			if count < 4700 || count > 5300 {
+				t.Error(name, count, total)
+			}
+		}
+		{
+			name := "B"
+			count := frequencies[name]
+			if count > 100 {
+				t.Error(name, count, total)
+			}
+		}
+		{
+			name := "C"
+			count := frequencies[name]
+			if count > 100 {
+				t.Error(name, count, total)
+			}
+		}
+		{
+			name := "D"
+			count := frequencies[name]
+			if count < 4700 || count > 5300 {
+				t.Error(name, count, total)
+			}
 		}
 	}
 }

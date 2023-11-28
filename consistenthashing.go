@@ -77,6 +77,8 @@ type chashOption[Node any] struct {
 	indexer  func(data []byte) uint32
 
 	virtualNodeFactor int
+
+	weightSpecify func(node Node) int
 }
 
 func (cho *chashOption[Node]) adaptVirtualNodeFactor(nodeSize int) {
@@ -98,6 +100,9 @@ func defaultCHashOption[Node any]() *chashOption[Node] {
 		nodeIDer: func(n Node) ([]byte, error) {
 			return json.Marshal(n)
 		},
+		weightSpecify: func(node Node) int {
+			return 1
+		},
 	}
 }
 
@@ -106,6 +111,12 @@ type chashOptionFunc[Node any] func(*chashOption[Node])
 func CHashOptionNodeIDer[Node any](nodeIDer func(node Node) ([]byte, error)) chashOptionFunc[Node] {
 	return func(co *chashOption[Node]) {
 		co.nodeIDer = nodeIDer
+	}
+}
+
+func CHashOptionWeightSpecify[Node any](weightSpecify func(node Node) int) chashOptionFunc[Node] {
+	return func(co *chashOption[Node]) {
+		co.weightSpecify = weightSpecify
 	}
 }
 
@@ -140,24 +151,37 @@ func NewCHash[Node any](nodes []Node, options ...chashOptionFunc[Node]) (*CHash[
 	}
 
 	for _, node := range nodes {
-		err := ch.addNode(node)
+		err := ch.addNode(node, option.weightSpecify(node), false)
 		if err != nil {
 			return nil, err
 		}
 	}
 
+	ch.sortVirtualNode()
 	return ch, nil
 }
 
-func (ch *CHash[Node]) AddNode(node Node) error {
+func (ch *CHash[Node]) AddNodeWithWeight(node Node, weight int) error {
 	ch.lock.Lock()
-	err := ch.addNode(node)
+	err := ch.addNode(node, weight, true)
 	ch.lock.Unlock()
 
 	return err
 }
 
-func (ch *CHash[Node]) addNode(node Node) error {
+func (ch *CHash[Node]) AddNode(node Node) error {
+	ch.lock.Lock()
+	err := ch.addNode(node, ch.option.weightSpecify(node), true)
+	ch.lock.Unlock()
+
+	return err
+}
+
+func (ch *CHash[Node]) addNode(node Node, weight int, doSort bool) error {
+	if weight < 1 {
+		return fmt.Errorf("weight must be greater than zero")
+	}
+
 	realNodeID, err := ch.option.nodeIDer(node)
 	if err != nil {
 		return fmt.Errorf("nodeIDer fail, err : %w", err)
@@ -182,7 +206,7 @@ func (ch *CHash[Node]) addNode(node Node) error {
 	}
 
 	succCount := 0
-	for i := ch.option.virtualNodeFactor * len(realNodes); succCount < ch.option.virtualNodeFactor; i++ {
+	for i := ch.option.virtualNodeFactor * len(realNodes); succCount < ch.option.virtualNodeFactor*weight; i++ {
 		key := virtualNodeKey(realNodeIDStr, i)
 		index := ch.option.indexer(key)
 		if _, ok := ch.virtualNodeMap[index]; ok {
@@ -199,7 +223,9 @@ func (ch *CHash[Node]) addNode(node Node) error {
 		rn.virtualNodeIndexs[index] = true
 	}
 
-	ch.sortvirtualNode()
+	if doSort {
+		ch.sortVirtualNode()
+	}
 
 	realNodes[realNodeIDStr] = rn
 
@@ -238,7 +264,7 @@ func (ch *CHash[Node]) removeNode(node Node) error {
 	for index := range realNode.virtualNodeIndexs {
 		delete(ch.virtualNodeMap, index)
 	}
-	ch.sortvirtualNode()
+	ch.sortVirtualNode()
 
 	return nil
 }
@@ -284,7 +310,7 @@ func (ch *CHash[Node]) find(index uint32) (node Node) {
 	return ch.virtualNodeList[i].realNode.node
 }
 
-func (ch *CHash[Node]) sortvirtualNode() {
+func (ch *CHash[Node]) sortVirtualNode() {
 	list := make([]*virtualNode[Node], 0, len(ch.virtualNodeMap))
 	for _, vn := range ch.virtualNodeMap {
 		list = append(list, vn)
