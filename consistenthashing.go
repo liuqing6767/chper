@@ -46,9 +46,8 @@ Real Node:		(				N3		](				N1		](	N3		](	N1		]
 // CHash is a consistent hashing
 // more information see http://en.wikipedia.org/wiki/Consistent_hashing
 type CHash[Node any] struct {
-	// realNodesIndex2Nodes is index -> real node id -> real node
-	// two nodes may be has the same index
-	realNodesIndex2Nodes map[uint32]map[string]realNode[Node]
+	// realNodeMap is name -> real node
+	realNodeMap map[string]realNode[Node]
 
 	virtualNodeMap  map[uint32]*virtualNode[Node]
 	virtualNodeList []*virtualNode[Node]
@@ -65,16 +64,15 @@ type virtualNode[Node any] struct {
 }
 
 type realNode[Node any] struct {
-	id                string
-	index             uint32
+	name              string
 	virtualNodeIndexs map[uint32]bool
 
 	node Node
 }
 
 type chashOption[Node any] struct {
-	nodeIDer func(Node) ([]byte, error)
-	indexer  func(data []byte) uint32
+	nodeNaming func(Node) (string, error)
+	indexer    func(data []byte) uint32
 
 	virtualNodeFactor int
 
@@ -97,8 +95,9 @@ func (cho *chashOption[Node]) adaptVirtualNodeFactor(nodeSize int) {
 func defaultCHashOption[Node any]() *chashOption[Node] {
 	return &chashOption[Node]{
 		indexer: crc32.ChecksumIEEE,
-		nodeIDer: func(n Node) ([]byte, error) {
-			return json.Marshal(n)
+		nodeNaming: func(n Node) (string, error) {
+			bs, err := json.Marshal(n)
+			return string(bs), err
 		},
 		weightSpecify: func(node Node) int {
 			return 1
@@ -108,9 +107,9 @@ func defaultCHashOption[Node any]() *chashOption[Node] {
 
 type chashOptionFunc[Node any] func(*chashOption[Node])
 
-func CHashOptionNodeIDer[Node any](nodeIDer func(node Node) ([]byte, error)) chashOptionFunc[Node] {
+func CHashOptionNodeNaming[Node any](nodeNaming func(node Node) (string, error)) chashOptionFunc[Node] {
 	return func(co *chashOption[Node]) {
-		co.nodeIDer = nodeIDer
+		co.nodeNaming = nodeNaming
 	}
 }
 
@@ -145,9 +144,9 @@ func NewCHash[Node any](nodes []Node, options ...chashOptionFunc[Node]) (*CHash[
 	option.adaptVirtualNodeFactor(len(nodes))
 
 	ch := &CHash[Node]{
-		realNodesIndex2Nodes: make(map[uint32]map[string]realNode[Node], len(nodes)),
-		virtualNodeMap:       make(map[uint32]*virtualNode[Node], len(nodes)*option.virtualNodeFactor),
-		option:               option,
+		realNodeMap:    make(map[string]realNode[Node], len(nodes)),
+		virtualNodeMap: make(map[uint32]*virtualNode[Node], len(nodes)*option.virtualNodeFactor),
+		option:         option,
 	}
 
 	for _, node := range nodes {
@@ -182,32 +181,25 @@ func (ch *CHash[Node]) addNode(node Node, weight int, doSort bool) error {
 		return fmt.Errorf("weight must be greater than zero")
 	}
 
-	realNodeID, err := ch.option.nodeIDer(node)
+	realNodeName, err := ch.option.nodeNaming(node)
 	if err != nil {
-		return fmt.Errorf("nodeIDer fail, err : %w", err)
+		return fmt.Errorf("nodeNaming fail, err : %w", err)
 	}
-	realNodeIDStr := fmt.Sprintf("%x", realNodeID)
-	realNodeIndex := ch.option.indexer(realNodeID)
-	realNodes, ok := ch.realNodesIndex2Nodes[realNodeIndex]
-	if !ok {
-		realNodes = map[string]realNode[Node]{}
-		ch.realNodesIndex2Nodes[realNodeIndex] = realNodes
-	}
-	if _, ok := realNodes[realNodeIDStr]; ok {
-		return fmt.Errorf("node existed, id: %s", realNodeIDStr)
+	_, ok := ch.realNodeMap[realNodeName]
+	if ok {
+		return fmt.Errorf("node existed, name: %s", realNodeName)
 	}
 
 	rn := realNode[Node]{
-		id:                realNodeIDStr,
-		index:             realNodeIndex,
+		name:              realNodeName,
 		virtualNodeIndexs: make(map[uint32]bool, ch.option.virtualNodeFactor),
 
 		node: node,
 	}
 
 	succCount := 0
-	for i := ch.option.virtualNodeFactor * len(realNodes); succCount < ch.option.virtualNodeFactor*weight; i++ {
-		key := virtualNodeKey(realNodeIDStr, i)
+	for i := 0; succCount < ch.option.virtualNodeFactor*weight; i++ {
+		key := virtualNodeKey(realNodeName, i)
 		index := ch.option.indexer(key)
 		if _, ok := ch.virtualNodeMap[index]; ok {
 			continue
@@ -227,13 +219,13 @@ func (ch *CHash[Node]) addNode(node Node, weight int, doSort bool) error {
 		ch.sortVirtualNode()
 	}
 
-	realNodes[realNodeIDStr] = rn
+	ch.realNodeMap[realNodeName] = rn
 
 	return nil
 }
 
-func virtualNodeKey(nodeID string, i int) []byte {
-	return []byte(fmt.Sprintf("%s#constinctethashing#%d", nodeID, i))
+func virtualNodeKey(nodeName string, i int) []byte {
+	return []byte(fmt.Sprintf("%s#constinctethashing#%d", nodeName, i))
 }
 
 func (ch *CHash[Node]) RemoveNode(node Node) error {
@@ -245,21 +237,15 @@ func (ch *CHash[Node]) RemoveNode(node Node) error {
 }
 
 func (ch *CHash[Node]) removeNode(node Node) error {
-	realNodeID, err := ch.option.nodeIDer(node)
+	realNodeName, err := ch.option.nodeNaming(node)
 	if err != nil {
-		return fmt.Errorf("nodeIDer fail, err : %w", err)
+		return fmt.Errorf("nodeNaming fail, err : %w", err)
 	}
-	realNodeIDStr := fmt.Sprintf("%x", realNodeID)
-	realNodeIndex := ch.option.indexer(realNodeID)
-	realNodes, ok := ch.realNodesIndex2Nodes[realNodeIndex]
+	realNode, ok := ch.realNodeMap[realNodeName]
 	if !ok {
-		return fmt.Errorf("node not exist, id: %s", realNodeIDStr)
+		return fmt.Errorf("node not exist, name: %s", realNodeName)
 	}
-	realNode, ok := realNodes[realNodeIDStr]
-	if !ok {
-		return fmt.Errorf("node not exist, id: %s", realNodeIDStr)
-	}
-	delete(realNodes, realNodeIDStr)
+	delete(ch.realNodeMap, realNodeName)
 
 	for index := range realNode.virtualNodeIndexs {
 		delete(ch.virtualNodeMap, index)
@@ -284,20 +270,6 @@ func (ch *CHash[Node]) hash(data []byte) (node Node, err error) {
 	}
 
 	return ch.find(ch.option.indexer(data)), nil
-}
-
-type IDer interface {
-	ID() ([]byte, error)
-}
-
-func (ch *CHash[Node]) HashIDer(ider IDer) (node Node, err error) {
-	data, err := ider.ID()
-	if err != nil {
-		err = fmt.Errorf("get ID fail, err: %w", err)
-		return
-	}
-
-	return ch.Hash(data)
 }
 
 func (ch *CHash[Node]) find(index uint32) (node Node) {

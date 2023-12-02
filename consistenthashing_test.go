@@ -22,7 +22,7 @@ var (
 func TestCHash(t *testing.T) {
 	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
 		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
-		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
+		CHashOptionNodeNaming[*Node](func(node *Node) (string, error) { return node.Name, nil }),
 		CHashOptionVirtualNodeFactor[*Node](5),
 	)
 
@@ -39,17 +39,17 @@ func TestCHash(t *testing.T) {
 				data     string
 				wantNode *Node
 			}{
-				{name: "case1", data: "1", wantNode: nodeC},
-				{name: "case2", data: "2", wantNode: nodeA},
-				{name: "case3", data: "3", wantNode: nodeB},
-				{name: "case4", data: "4", wantNode: nodeC},
-				{name: "case5", data: "5", wantNode: nodeC},
-				{name: "case6", data: "6", wantNode: nodeA},
-				{name: "case7", data: "7", wantNode: nodeB},
-				{name: "case8", data: "8", wantNode: nodeB},
-				{name: "case9", data: "9", wantNode: nodeC},
-				{name: "case10", data: "10", wantNode: nodeA},
-				{name: "case11", data: "11", wantNode: nodeA},
+				{name: "case1", data: "1", wantNode: nodeA},
+				{name: "case2", data: "2", wantNode: nodeC},
+				{name: "case3", data: "3", wantNode: nodeA},
+				{name: "case4", data: "4", wantNode: nodeA},
+				{name: "case5", data: "5", wantNode: nodeA},
+				{name: "case6", data: "6", wantNode: nodeC},
+				{name: "case7", data: "7", wantNode: nodeA},
+				{name: "case8", data: "8", wantNode: nodeA},
+				{name: "case9", data: "9", wantNode: nodeA},
+				{name: "case10", data: "10", wantNode: nodeB},
+				{name: "case11", data: "11", wantNode: nodeB},
 				{name: "case12", data: "12", wantNode: nodeC},
 			} {
 				got, err := ch.Hash([]byte(cas.data))
@@ -74,17 +74,17 @@ func TestCHash(t *testing.T) {
 			data     string
 			wantNode *Node
 		}{
-			{name: "case1", data: "1", wantNode: nodeC},
-			{name: "case2", data: "2", wantNode: nodeA},
-			{name: "case3", data: "3", wantNode: nodeB},
-			{name: "case4", data: "4", wantNode: nodeC},
-			{name: "case5", data: "5", wantNode: nodeC},
-			{name: "case6", data: "6", wantNode: nodeA},
-			{name: "case7", data: "7", wantNode: nodeB},
-			{name: "case8", data: "8", wantNode: nodeB},
-			{name: "case9", data: "9", wantNode: nodeC},
-			{name: "case10", data: "10", wantNode: nodeA},
-			{name: "case11", data: "11", wantNode: nodeA},
+			{name: "case1", data: "1", wantNode: nodeA},
+			{name: "case2", data: "2", wantNode: nodeC},
+			{name: "case3", data: "3", wantNode: nodeA},
+			{name: "case4", data: "4", wantNode: nodeA},
+			{name: "case5", data: "5", wantNode: nodeA},
+			{name: "case6", data: "6", wantNode: nodeC},
+			{name: "case7", data: "7", wantNode: nodeA},
+			{name: "case8", data: "8", wantNode: nodeA},
+			{name: "case9", data: "9", wantNode: nodeA},
+			{name: "case10", data: "10", wantNode: nodeB},
+			{name: "case11", data: "11", wantNode: nodeB},
 			{name: "case12", data: "12", wantNode: nodeC},
 		} {
 			got, err := ch.Hash([]byte(cas.data))
@@ -106,18 +106,18 @@ func TestCHash(t *testing.T) {
 				data     string
 				wantNode *Node
 			}{
-				{name: "case1", data: "1", wantNode: nodeB},
-				{name: "case2", data: "2", wantNode: nodeA},
-				{name: "case3", data: "3", wantNode: nodeB},
-				{name: "case4", data: "4", wantNode: nodeB},
-				{name: "case5", data: "5", wantNode: nodeB},
-				{name: "case6", data: "6", wantNode: nodeA},
-				{name: "case7", data: "7", wantNode: nodeB},
-				{name: "case8", data: "8", wantNode: nodeB},
-				{name: "case9", data: "9", wantNode: nodeB},
-				{name: "case10", data: "10", wantNode: nodeA},
-				{name: "case11", data: "11", wantNode: nodeA},
-				{name: "case12", data: "12", wantNode: nodeB},
+				{name: "case1", data: "1", wantNode: nodeA},
+				{name: "case2", data: "2", wantNode: nodeB},
+				{name: "case3", data: "3", wantNode: nodeA},
+				{name: "case4", data: "4", wantNode: nodeA},
+				{name: "case5", data: "5", wantNode: nodeA},
+				{name: "case6", data: "6", wantNode: nodeB},
+				{name: "case7", data: "7", wantNode: nodeA},
+				{name: "case8", data: "8", wantNode: nodeA},
+				{name: "case9", data: "9", wantNode: nodeA},
+				{name: "case10", data: "10", wantNode: nodeB},
+				{name: "case11", data: "11", wantNode: nodeB},
+				{name: "case12", data: "12", wantNode: nodeA},
 			} {
 				got, err := ch.Hash([]byte(cas.data))
 				if err != nil {
@@ -141,17 +141,17 @@ func TestCHash(t *testing.T) {
 			data     string
 			wantNode *Node
 		}{
-			{name: "case1", data: "1", wantNode: nodeC},
-			{name: "case2", data: "2", wantNode: nodeA},
-			{name: "case3", data: "3", wantNode: nodeB},
-			{name: "case4", data: "4", wantNode: nodeC},
-			{name: "case5", data: "5", wantNode: nodeC},
-			{name: "case6", data: "6", wantNode: nodeA},
-			{name: "case7", data: "7", wantNode: nodeB},
-			{name: "case8", data: "8", wantNode: nodeB},
-			{name: "case9", data: "9", wantNode: nodeC},
-			{name: "case10", data: "10", wantNode: nodeA},
-			{name: "case11", data: "11", wantNode: nodeA},
+			{name: "case1", data: "1", wantNode: nodeA},
+			{name: "case2", data: "2", wantNode: nodeC},
+			{name: "case3", data: "3", wantNode: nodeA},
+			{name: "case4", data: "4", wantNode: nodeA},
+			{name: "case5", data: "5", wantNode: nodeA},
+			{name: "case6", data: "6", wantNode: nodeC},
+			{name: "case7", data: "7", wantNode: nodeA},
+			{name: "case8", data: "8", wantNode: nodeA},
+			{name: "case9", data: "9", wantNode: nodeA},
+			{name: "case10", data: "10", wantNode: nodeB},
+			{name: "case11", data: "11", wantNode: nodeB},
 			{name: "case12", data: "12", wantNode: nodeC},
 		} {
 			got, err := ch.Hash([]byte(cas.data))
@@ -175,17 +175,17 @@ func TestCHash(t *testing.T) {
 			data     string
 			wantNode *Node
 		}{
-			{name: "case1", data: "1", wantNode: nodeC},
-			{name: "case2", data: "2", wantNode: nodeA},
-			{name: "case3", data: "3", wantNode: nodeB},
-			{name: "case4", data: "4", wantNode: nodeC},
-			{name: "case5", data: "5", wantNode: nodeC},
-			{name: "case6", data: "6", wantNode: nodeA},
-			{name: "case7", data: "7", wantNode: nodeB},
-			{name: "case8", data: "8", wantNode: nodeB},
-			{name: "case9", data: "9", wantNode: nodeC},
-			{name: "case10", data: "10", wantNode: nodeA},
-			{name: "case11", data: "11", wantNode: nodeA},
+			{name: "case1", data: "1", wantNode: nodeA},
+			{name: "case2", data: "2", wantNode: nodeC},
+			{name: "case3", data: "3", wantNode: nodeA},
+			{name: "case4", data: "4", wantNode: nodeA},
+			{name: "case5", data: "5", wantNode: nodeA},
+			{name: "case6", data: "6", wantNode: nodeC},
+			{name: "case7", data: "7", wantNode: nodeA},
+			{name: "case8", data: "8", wantNode: nodeA},
+			{name: "case9", data: "9", wantNode: nodeA},
+			{name: "case10", data: "10", wantNode: nodeB},
+			{name: "case11", data: "11", wantNode: nodeB},
 			{name: "case12", data: "12", wantNode: nodeC},
 		} {
 			got, err := ch.Hash([]byte(cas.data))
@@ -207,17 +207,17 @@ func TestCHash(t *testing.T) {
 				data     string
 				wantNode *Node
 			}{
-				{name: "case1", data: "1", wantNode: nodeC},
-				{name: "case2", data: "2", wantNode: nodeA},
-				{name: "case3", data: "3", wantNode: nodeD},
-				{name: "case4", data: "4", wantNode: nodeC},
-				{name: "case5", data: "5", wantNode: nodeC},
-				{name: "case6", data: "6", wantNode: nodeA},
-				{name: "case7", data: "7", wantNode: nodeD},
-				{name: "case8", data: "8", wantNode: nodeB},
-				{name: "case9", data: "9", wantNode: nodeC},
-				{name: "case10", data: "10", wantNode: nodeA},
-				{name: "case11", data: "11", wantNode: nodeA},
+				{name: "case1", data: "1", wantNode: nodeA},
+				{name: "case2", data: "2", wantNode: nodeC},
+				{name: "case3", data: "3", wantNode: nodeA},
+				{name: "case4", data: "4", wantNode: nodeA},
+				{name: "case5", data: "5", wantNode: nodeA},
+				{name: "case6", data: "6", wantNode: nodeC},
+				{name: "case7", data: "7", wantNode: nodeA},
+				{name: "case8", data: "8", wantNode: nodeA},
+				{name: "case9", data: "9", wantNode: nodeA},
+				{name: "case10", data: "10", wantNode: nodeB},
+				{name: "case11", data: "11", wantNode: nodeD},
 				{name: "case12", data: "12", wantNode: nodeC},
 			} {
 				got, err := ch.Hash([]byte(cas.data))
@@ -227,76 +227,6 @@ func TestCHash(t *testing.T) {
 				if !reflect.DeepEqual(got, cas.wantNode) {
 					t.Errorf("%s, want: %v, got: %v", cas.name, cas.wantNode, got)
 				}
-			}
-		}
-	}
-}
-
-func TestCHashBalance(t *testing.T) {
-	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
-		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
-		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
-		// CHashOptionVirtualNodeFactor[*Node](500),
-	)
-	if err != nil {
-		t.Errorf("want nil, got: %v", err)
-		return
-	}
-
-	total := 10000
-	{
-		frequencies := map[string]int{}
-		for i := 0; i < total; i++ {
-			bs := make([]byte, mrand.Int31()%1000)
-			_, err = rand.Read(bs)
-			if err != nil {
-				t.Errorf("want nil, got: %v", err)
-				return
-			}
-
-			node, err := ch.Hash(bs)
-			if err != nil {
-				t.Errorf("want nil, got: %v", err)
-				return
-			}
-
-			frequencies[node.Name]++
-		}
-
-		for name, count := range frequencies {
-			if count < total*30/100 || count > total*36/100 {
-				t.Error(name, count, total)
-			}
-		}
-	}
-
-	{
-		err = ch.AddNode(nodeD)
-		if err != nil {
-			t.Errorf("want nil, got: %v", err)
-		}
-
-		frequencies := map[string]int{}
-		for i := 0; i < total; i++ {
-			bs := make([]byte, mrand.Int31()%1000)
-			_, err = rand.Read(bs)
-			if err != nil {
-				t.Errorf("want nil, got: %v", err)
-				return
-			}
-
-			node, err := ch.Hash(bs)
-			if err != nil {
-				t.Errorf("want nil, got: %v", err)
-				return
-			}
-
-			frequencies[node.Name]++
-		}
-
-		for name, count := range frequencies {
-			if count < total*22/100 || count > total*28/100 {
-				t.Error(name, count, total)
 			}
 		}
 	}
@@ -346,10 +276,80 @@ func TestCHashfind(t *testing.T) {
 	}
 }
 
+func TestCHashBalance(t *testing.T) {
+	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
+		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
+		CHashOptionNodeNaming[*Node](func(node *Node) (string, error) { return node.Name, nil }),
+		// CHashOptionVirtualNodeFactor[*Node](500),
+	)
+	if err != nil {
+		t.Errorf("want nil, got: %v", err)
+		return
+	}
+
+	total := 10000
+	{
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
+		}
+
+		for name, count := range frequencies {
+			if count < total*29/100 || count > total*40/100 {
+				t.Error(name, count, total)
+			}
+		}
+	}
+
+	{
+		err = ch.AddNode(nodeD)
+		if err != nil {
+			t.Errorf("want nil, got: %v", err)
+		}
+
+		frequencies := map[string]int{}
+		for i := 0; i < total; i++ {
+			bs := make([]byte, mrand.Int31()%1000)
+			_, err = rand.Read(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			node, err := ch.Hash(bs)
+			if err != nil {
+				t.Errorf("want nil, got: %v", err)
+				return
+			}
+
+			frequencies[node.Name]++
+		}
+
+		for name, count := range frequencies {
+			if count < total*22/100 || count > total*28/100 {
+				t.Error(name, count, total)
+			}
+		}
+	}
+}
+
 func TestCHashWeightBalance(t *testing.T) {
 	ch, err := NewCHash[*Node]([]*Node{nodeA, nodeB, nodeC},
 		CHashOptionIndexer[*Node](func(data []byte) uint32 { return crc32.ChecksumIEEE(data) }),
-		CHashOptionNodeIDer[*Node](func(node *Node) ([]byte, error) { return []byte(node.Name), nil }),
+		CHashOptionNodeNaming[*Node](func(node *Node) (string, error) { return node.Name, nil }),
 		CHashOptionWeightSpecify[*Node](func(node *Node) int {
 			if node.Name == "A" || node.Name == "D" {
 				return 98
